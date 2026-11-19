@@ -70,6 +70,17 @@ header p{margin:2px 0 0; opacity:.85; font-size:14px}
 .total .num.out{color:var(--bad)}
 .total .pct{grid-column:1/-1; font-size:13px; color:var(--muted); margin-top:4px}
 
+.total .ttl{grid-column:1/-1; font-size:14px; font-weight:800; color:var(--accent); margin-bottom:2px}
+.sumcard{background:var(--card); border:2px solid var(--brand); border-radius:16px; padding:12px 14px; margin:12px 0}
+.sumcard h2{margin:0 0 6px; font-size:18px; font-weight:800}
+.sumcard table{width:100%; border-collapse:collapse; font-variant-numeric:tabular-nums}
+.sumcard th,.sumcard td{padding:7px 4px; text-align:center; border-bottom:1px solid var(--line)}
+.sumcard th{font-size:13px; color:var(--muted); font-weight:600}
+.sumcard td{font-size:17px; font-weight:600}
+.sumcard td.o{color:var(--bad)}
+.sumcard td.k{color:var(--good); font-weight:800}
+.sumcard td.neg{color:var(--bad)}
+.sumcard tr.t td{border-bottom:0; border-top:2px solid var(--ink); font-size:19px; font-weight:800}
 .formula{font-size:13.5px; color:var(--muted); text-align:center; margin:8px 0 0}
 
 .mod{
@@ -182,6 +193,7 @@ h3{margin:18px 0 0; font-size:17px}
 
     <div class="total">
       <div class="box">
+        <div class="ttl">รวมทั้ง 6 หมวด</div>
         <div><div class="lbl">ยอดเดิม</div><div class="num" id="t-base">0</div></div>
         <div><div class="lbl">จำหน่าย</div><div class="num out" id="t-out">0</div></div>
         <div><div class="lbl">คงแถว</div><div class="num keep" id="t-keep">0</div></div>
@@ -190,6 +202,14 @@ h3{margin:18px 0 0; font-size:17px}
     </div>
 
     <div id="mods"></div>
+
+    <div class="sumcard">
+      <h2>สรุปรวมทั้ง 6 หมวด</h2>
+      <table>
+        <thead><tr><th>หมวด</th><th>ยอดเดิม</th><th>จำหน่าย</th><th>คงแถว</th></tr></thead>
+        <tbody id="sum-body"></tbody>
+      </table>
+    </div>
 
     <div class="tools">
       <button class="btn small" id="clear-out">ล้างจำหน่ายเป็น 0</button>
@@ -303,6 +323,9 @@ h3{margin:18px 0 0; font-size:17px}
       $('m'+i).classList.toggle('err', row.keep<0);
       $('e'+i).hidden = row.keep>=0;
     });
+    $('sum-body').innerHTML = r.rows.map((row,i)=>
+      `<tr><td>${i+1}</td><td>${row.base}</td><td class="o">${row.out}</td><td class="${row.keep<0?'neg':'k'}">${row.keep}</td></tr>`).join('') +
+      `<tr class="t"><td>รวม</td><td>${r.t.base}</td><td class="o">${r.t.out}</td><td class="k">${r.t.keep}</td></tr>`;
     $('t-base').textContent = r.t.base;
     $('t-out').textContent = r.t.out;
     $('t-keep').textContent = r.t.keep;
