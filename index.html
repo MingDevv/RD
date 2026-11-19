@@ -1,0 +1,476 @@
+<!doctype html>
+<html lang="th">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#2f4a2a">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="ยอด รด.">
+<title>คำนวณยอด รด.</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@400;600;700;800&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#f3f4ee; --card:#ffffff; --ink:#1d2419; --muted:#6b7363; --line:#dfe3d6;
+  --brand:#2f4a2a; --brand-ink:#ffffff; --accent:#5d7d3a;
+  --good:#1f7a3a; --good-bg:#e3f3e7; --warn:#a15c00; --warn-bg:#fff1dc;
+  --bad:#b3261e; --bad-bg:#fde7e5; --chip:#eef1e8;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#121510; --card:#1c211a; --ink:#e9eee3; --muted:#9aa391; --line:#2d3529;
+    --brand:#3f6236; --brand-ink:#ffffff; --accent:#8fb563;
+    --good:#7fd69a; --good-bg:#16301e; --warn:#ffbe5c; --warn-bg:#33260f;
+    --bad:#ff8a80; --bad-bg:#3a1714; --chip:#252c22;
+  }
+}
+*{box-sizing:border-box}
+html,body{margin:0}
+body{
+  background:var(--bg); color:var(--ink);
+  font-family:"Sarabun",system-ui,-apple-system,sans-serif; font-size:17px; line-height:1.45;
+  -webkit-tap-highlight-color:transparent;
+  padding-bottom:calc(84px + env(safe-area-inset-bottom));
+}
+.wrap{max-width:560px; margin:0 auto; padding:0 16px}
+header{
+  background:var(--brand); color:var(--brand-ink);
+  padding:calc(14px + env(safe-area-inset-top)) 0 14px;
+}
+header h1{margin:0; font-size:21px; font-weight:800; letter-spacing:.2px}
+header p{margin:2px 0 0; opacity:.85; font-size:14px}
+
+.status{
+  margin:14px 0 0; border-radius:14px; padding:12px 14px;
+  display:flex; gap:10px; align-items:center; font-weight:600;
+}
+.status.ok{background:var(--good-bg); color:var(--good)}
+.status.no{background:var(--warn-bg); color:var(--warn)}
+.status .dot{font-size:22px; line-height:1}
+.status small{display:block; font-weight:400; opacity:.9; font-size:13.5px}
+
+.datebar{display:flex; gap:10px; align-items:center; margin:14px 0 4px; color:var(--muted); font-size:15px}
+.datebar input{
+  flex:1; font:inherit; color:var(--ink); background:var(--card);
+  border:1px solid var(--line); border-radius:10px; padding:8px 10px; min-height:44px;
+}
+
+.total{
+  position:sticky; top:0; z-index:5; margin:12px -16px 0; padding:10px 16px;
+  background:var(--bg);
+}
+.total .box{
+  background:var(--card); border:2px solid var(--brand); border-radius:16px;
+  display:grid; grid-template-columns:repeat(3,1fr); text-align:center; padding:10px 4px;
+}
+.total .lbl{font-size:13px; color:var(--muted); font-weight:600}
+.total .num{font-size:28px; font-weight:800; line-height:1.15; font-variant-numeric:tabular-nums}
+.total .num.keep{color:var(--good)}
+.total .num.out{color:var(--bad)}
+.total .pct{grid-column:1/-1; font-size:13px; color:var(--muted); margin-top:4px}
+
+.formula{font-size:13.5px; color:var(--muted); text-align:center; margin:8px 0 0}
+
+.mod{
+  background:var(--card); border:1px solid var(--line); border-radius:16px;
+  padding:12px 14px; margin:12px 0;
+}
+.mod.err{border-color:var(--bad); background:var(--bad-bg)}
+.mod-head{display:flex; justify-content:space-between; align-items:baseline}
+.mod-head h2{margin:0; font-size:18px; font-weight:800}
+.mod-head .keep{font-size:15px; color:var(--muted)}
+.mod-head .keep b{font-size:24px; color:var(--good); font-variant-numeric:tabular-nums}
+.mod.err .mod-head .keep b{color:var(--bad)}
+.row{display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-top:10px}
+.field label{display:block; font-size:13px; color:var(--muted); font-weight:600; margin-bottom:4px}
+.step{display:flex; align-items:stretch; border:1px solid var(--line); border-radius:12px; overflow:hidden; background:var(--bg)}
+.step button{
+  width:44px; min-height:48px; border:0; background:var(--chip); color:var(--ink);
+  font:inherit; font-size:22px; font-weight:700; cursor:pointer; touch-action:manipulation;
+}
+.step button:active{background:var(--line)}
+.step input{
+  flex:1; min-width:0; width:100%; border:0; background:transparent; color:var(--ink);
+  font:inherit; font-size:21px; font-weight:700; text-align:center; font-variant-numeric:tabular-nums;
+}
+.step input:focus{outline:none}
+.step:focus-within{border-color:var(--accent); box-shadow:0 0 0 2px color-mix(in srgb,var(--accent) 35%,transparent)}
+.field.out .step input{color:var(--bad)}
+.errmsg{color:var(--bad); font-size:13.5px; margin-top:6px; font-weight:600}
+
+.tools{display:flex; gap:8px; flex-wrap:wrap; margin:6px 0 0}
+.btn{
+  font:inherit; font-weight:700; border-radius:12px; min-height:48px; padding:0 16px;
+  border:1px solid var(--line); background:var(--card); color:var(--ink); cursor:pointer;
+}
+.btn.small{min-height:40px; font-size:14.5px; padding:0 12px; font-weight:600}
+.btn.primary{background:var(--brand); color:var(--brand-ink); border-color:var(--brand)}
+.btn.danger{color:var(--bad)}
+.btn:disabled{opacity:.45}
+
+.bottom{
+  position:fixed; left:0; right:0; bottom:0; z-index:10;
+  background:color-mix(in srgb,var(--bg) 92%,transparent); backdrop-filter:blur(8px);
+  border-top:1px solid var(--line);
+  padding:10px 0 calc(10px + env(safe-area-inset-bottom));
+}
+.bottom .wrap{display:grid; grid-template-columns:1fr 1.4fr; gap:10px}
+
+.tabs{display:grid; grid-template-columns:1fr 1fr; gap:6px; margin:14px 0 0; background:var(--chip); padding:4px; border-radius:14px}
+.tabs button{font:inherit; font-weight:700; border:0; border-radius:10px; min-height:42px; background:transparent; color:var(--muted); cursor:pointer}
+.tabs button[aria-selected="true"]{background:var(--card); color:var(--ink); box-shadow:0 1px 3px rgba(0,0,0,.12)}
+
+.weeks{display:grid; grid-template-columns:repeat(4,1fr); gap:8px; margin:12px 0}
+.wk{border-radius:12px; padding:8px 4px; text-align:center; font-size:12.5px; border:1px solid var(--line); background:var(--card)}
+.wk b{display:block; font-size:20px; line-height:1.2}
+.wk.ok{background:var(--good-bg); color:var(--good); border-color:transparent}
+.wk.no{color:var(--muted)}
+.wk.now{outline:2px solid var(--accent); outline-offset:1px}
+.streak{font-size:15px; color:var(--muted); margin:4px 0 0}
+.streak b{color:var(--ink)}
+
+.hist{list-style:none; margin:0; padding:0}
+.hist li{background:var(--card); border:1px solid var(--line); border-radius:14px; padding:12px 14px; margin:10px 0}
+.hist .top{display:flex; justify-content:space-between; gap:8px; align-items:baseline}
+.hist .wkname{font-weight:800}
+.hist .when{font-size:13px; color:var(--muted)}
+.hist .sum{display:flex; gap:14px; margin-top:4px; font-variant-numeric:tabular-nums}
+.hist .sum span{color:var(--muted); font-size:14px}
+.hist .sum b{color:var(--ink); font-size:17px}
+.hist details{margin-top:6px}
+.hist summary{cursor:pointer; color:var(--accent); font-weight:600; font-size:14.5px; min-height:32px; display:flex; align-items:center}
+.hist table{width:100%; border-collapse:collapse; font-size:14.5px; margin-top:4px; font-variant-numeric:tabular-nums}
+.hist th,.hist td{padding:5px 4px; text-align:center; border-bottom:1px solid var(--line)}
+.hist th{color:var(--muted); font-weight:600; font-size:13px}
+.hist tr.t td{font-weight:800; border-bottom:0}
+.hist .acts{display:flex; gap:8px; margin-top:8px}
+.empty{color:var(--muted); text-align:center; padding:24px 0}
+
+.toast{
+  position:fixed; left:50%; bottom:calc(92px + env(safe-area-inset-bottom)); transform:translateX(-50%) translateY(20px);
+  background:var(--ink); color:var(--bg); padding:10px 16px; border-radius:12px; font-weight:600;
+  opacity:0; pointer-events:none; transition:.2s; z-index:20; max-width:calc(100% - 32px); text-align:center;
+}
+.toast.show{opacity:1; transform:translateX(-50%) translateY(0)}
+[hidden]{display:none !important}
+h3{margin:18px 0 0; font-size:17px}
+</style>
+</head>
+<body>
+<header>
+  <div class="wrap">
+    <h1>คำนวณยอด รด.</h1>
+    <p>ยอดเดิม − จำหน่าย = คงแถว</p>
+  </div>
+</header>
+
+<main class="wrap">
+  <div id="status" class="status no" role="status"></div>
+
+  <div class="tabs" role="tablist">
+    <button role="tab" id="tab-calc" aria-selected="true">กรอกยอด</button>
+    <button role="tab" id="tab-stat" aria-selected="false">สถิติ</button>
+  </div>
+
+  <!-- ===== หน้ากรอกยอด ===== -->
+  <section id="page-calc">
+    <div class="datebar">
+      <span>วันที่</span>
+      <input type="date" id="date">
+    </div>
+
+    <div class="total">
+      <div class="box">
+        <div><div class="lbl">ยอดเดิม</div><div class="num" id="t-base">0</div></div>
+        <div><div class="lbl">จำหน่าย</div><div class="num out" id="t-out">0</div></div>
+        <div><div class="lbl">คงแถว</div><div class="num keep" id="t-keep">0</div></div>
+        <div class="pct" id="t-pct">มาแถว 0%</div>
+      </div>
+    </div>
+
+    <div id="mods"></div>
+
+    <div class="tools">
+      <button class="btn small" id="clear-out">ล้างจำหน่ายเป็น 0</button>
+      <button class="btn small" id="share">คัดลอก/ส่งยอด</button>
+    </div>
+    <p class="formula">คงแถว = ยอดเดิม − จำหน่าย (จำหน่าย = ขาด)<br>รวมทั้งหมด = หมวด 1 + 2 + 3 + 4 + 5 + 6</p>
+  </section>
+
+  <!-- ===== หน้าสถิติ ===== -->
+  <section id="page-stat" hidden>
+    <h3>12 สัปดาห์ล่าสุด</h3>
+    <div class="weeks" id="weeks"></div>
+    <p class="streak" id="streak"></p>
+
+    <h3>ประวัติที่บันทึก</h3>
+    <ul class="hist" id="hist"></ul>
+
+    <div class="tools" style="margin-top:14px">
+      <button class="btn small" id="export">สำรองข้อมูล (ไฟล์)</button>
+      <label class="btn small" style="display:inline-flex;align-items:center">นำเข้าไฟล์สำรอง
+        <input type="file" id="import" accept="application/json" hidden>
+      </label>
+    </div>
+  </section>
+</main>
+
+<div class="bottom">
+  <div class="wrap">
+    <button class="btn" id="share2">ส่งยอด</button>
+    <button class="btn primary" id="save">บันทึกสัปดาห์นี้</button>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+(function(){
+  const N = 6;
+  const KEY = 'rd-calc-v1';
+  const TH_MONTH = ['ม.ค.','ก.พ.','มี.ค.','เม.ย.','พ.ค.','มิ.ย.','ก.ค.','ส.ค.','ก.ย.','ต.ค.','พ.ย.','ธ.ค.'];
+
+  /* ---------- storage ---------- */
+  function load(){
+    try{ const s = JSON.parse(localStorage.getItem(KEY)); if(s && s.base) return s; }catch(e){}
+    return { base:Array(N).fill(0), out:Array(N).fill(0), outWeek:null, history:[] };
+  }
+  function persist(){
+    try{ localStorage.setItem(KEY, JSON.stringify(state)); }catch(e){ toast('บันทึกในเครื่องไม่ได้ (โหมดส่วนตัว?)'); }
+  }
+  let state = load();
+
+  /* ---------- date / week helpers (สัปดาห์เริ่มวันจันทร์) ---------- */
+  const pad = n => String(n).padStart(2,'0');
+  const isoDate = d => d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate());
+  const parseDate = s => { const [y,m,d] = s.split('-').map(Number); return new Date(y,m-1,d); };
+  function monday(d){ const x = new Date(d.getFullYear(), d.getMonth(), d.getDate()); const wd = (x.getDay()+6)%7; x.setDate(x.getDate()-wd); return x; }
+  const weekKey = d => isoDate(monday(d));             // ใช้วันจันทร์ของสัปดาห์เป็นรหัส
+  function thDate(d, withYear){ return d.getDate()+' '+TH_MONTH[d.getMonth()]+(withYear?' '+(d.getFullYear()+543):''); }
+  function weekLabel(key){
+    const m = parseDate(key), s = new Date(m); s.setDate(s.getDate()+6);
+    return thDate(m, m.getFullYear()!==s.getFullYear()) + ' – ' + thDate(s, true);
+  }
+
+  /* ---------- math ---------- */
+  const toInt = v => { const n = parseInt(v,10); return isNaN(n)||n<0 ? 0 : n; };
+  function calc(base, out){
+    const rows = base.map((b,i)=>({ base:b, out:out[i], keep:b-out[i] }));
+    const t = rows.reduce((a,r)=>({ base:a.base+r.base, out:a.out+r.out, keep:a.keep+r.keep }), {base:0,out:0,keep:0});
+    return { rows, t, valid: rows.every(r=>r.keep>=0) };
+  }
+
+  /* ---------- UI: หมวด cards ---------- */
+  const $ = id => document.getElementById(id);
+  const dateEl = $('date');
+  dateEl.value = isoDate(new Date());
+
+  // ถ้าจำหน่ายที่ค้างไว้เป็นของสัปดาห์ก่อน ให้เริ่มใหม่เป็น 0 (ยอดเดิมคงไว้)
+  if(state.outWeek && state.outWeek !== weekKey(new Date())){
+    state.out = Array(N).fill(0); state.outWeek = null; persist();
+  }
+
+  const modsEl = $('mods');
+  modsEl.innerHTML = Array.from({length:N},(_,i)=>`
+    <div class="mod" id="m${i}">
+      <div class="mod-head"><h2>หมวด ${i+1}</h2><span class="keep">คงแถว <b id="k${i}">0</b></span></div>
+      <div class="row">
+        <div class="field"><label for="b${i}">ยอดเดิม</label>
+          <div class="step"><button data-t="b" data-i="${i}" data-d="-1" aria-label="ลดยอดเดิม">−</button>
+          <input id="b${i}" inputmode="numeric" pattern="[0-9]*" autocomplete="off">
+          <button data-t="b" data-i="${i}" data-d="1" aria-label="เพิ่มยอดเดิม">+</button></div></div>
+        <div class="field out"><label for="o${i}">จำหน่าย (ขาด)</label>
+          <div class="step"><button data-t="o" data-i="${i}" data-d="-1" aria-label="ลดจำหน่าย">−</button>
+          <input id="o${i}" inputmode="numeric" pattern="[0-9]*" autocomplete="off">
+          <button data-t="o" data-i="${i}" data-d="1" aria-label="เพิ่มจำหน่าย">+</button></div></div>
+      </div>
+      <div class="errmsg" id="e${i}" hidden>จำหน่ายมากกว่ายอดเดิม</div>
+    </div>`).join('');
+
+  function fillInputs(){
+    for(let i=0;i<N;i++){
+      $('b'+i).value = state.base[i] || '';
+      $('o'+i).value = state.out[i] || '';
+      $('b'+i).placeholder = '0'; $('o'+i).placeholder = '0';
+    }
+  }
+
+  function render(){
+    const r = calc(state.base, state.out);
+    r.rows.forEach((row,i)=>{
+      $('k'+i).textContent = row.keep;
+      $('m'+i).classList.toggle('err', row.keep<0);
+      $('e'+i).hidden = row.keep>=0;
+    });
+    $('t-base').textContent = r.t.base;
+    $('t-out').textContent = r.t.out;
+    $('t-keep').textContent = r.t.keep;
+    $('t-pct').textContent = r.t.base ? `มาแถว ${(r.t.keep/r.t.base*100).toFixed(1)}%  ·  ขาด ${(r.t.out/r.t.base*100).toFixed(1)}%` : 'ใส่ยอดเดิมของแต่ละหมวดก่อน';
+    $('save').disabled = !r.valid || r.t.base===0;
+    renderStatus();
+  }
+
+  function setVal(t,i,v){
+    v = Math.max(0, Math.min(999, v));
+    if(t==='b') state.base[i]=v; else { state.out[i]=v; state.outWeek = weekKey(parseDate(dateEl.value)); }
+    persist();
+  }
+
+  modsEl.addEventListener('input', e=>{
+    const id = e.target.id; if(!id) return;
+    e.target.value = e.target.value.replace(/\D/g,'');
+    setVal(id[0], +id.slice(1), toInt(e.target.value));
+    render();
+  });
+  modsEl.addEventListener('focusin', e=>{ if(e.target.tagName==='INPUT') setTimeout(()=>e.target.select(),0); });
+  modsEl.addEventListener('click', e=>{
+    const b = e.target.closest('button[data-t]'); if(!b) return;
+    const t=b.dataset.t, i=+b.dataset.i, arr = t==='b'?state.base:state.out;
+    setVal(t,i, arr[i] + (+b.dataset.d));
+    $((t==='b'?'b':'o')+i).value = (t==='b'?state.base:state.out)[i] || '';
+    render();
+  });
+
+  /* ---------- status ---------- */
+  function findWeek(key){ return state.history.find(h=>h.week===key); }
+  function renderStatus(){
+    const key = weekKey(parseDate(dateEl.value || isoDate(new Date())));
+    const isThis = key === weekKey(new Date());
+    const h = findWeek(key);
+    const el = $('status');
+    const label = (isThis?'สัปดาห์นี้':'สัปดาห์') + ' (' + weekLabel(key) + ')';
+    if(h){
+      const d = new Date(h.savedAt);
+      el.className='status ok';
+      el.innerHTML = `<span class="dot">✓</span><div>${label} บันทึกแล้ว<small>คงแถว ${h.total.keep}/${h.total.base} · บันทึกเมื่อ ${thDate(d)} ${pad(d.getHours())}:${pad(d.getMinutes())} น.</small></div>`;
+      $('save').textContent = 'บันทึกทับ';
+    }else{
+      el.className='status no';
+      el.innerHTML = `<span class="dot">!</span><div>${label} ยังไม่ได้บันทึก<small>กรอกจำหน่ายแล้วกด “บันทึก” ด้านล่าง</small></div>`;
+      $('save').textContent = isThis ? 'บันทึกสัปดาห์นี้' : 'บันทึกสัปดาห์นั้น';
+    }
+  }
+  dateEl.addEventListener('change', ()=>{ if(!dateEl.value) dateEl.value = isoDate(new Date()); render(); });
+
+  /* ---------- save ---------- */
+  $('save').addEventListener('click', ()=>{
+    const r = calc(state.base, state.out);
+    if(!r.valid){ toast('มีหมวดที่จำหน่ายมากกว่ายอดเดิม'); return; }
+    const d = parseDate(dateEl.value), key = weekKey(d);
+    const existing = findWeek(key);
+    if(existing && !confirm('สัปดาห์นี้บันทึกไปแล้ว ต้องการบันทึกทับใช่ไหม?')) return;
+    const entry = { week:key, date:dateEl.value, savedAt:new Date().toISOString(),
+      rows:r.rows.map(x=>({base:x.base,out:x.out,keep:x.keep})), total:r.t };
+    state.history = state.history.filter(h=>h.week!==key).concat(entry).sort((a,b)=>b.week.localeCompare(a.week));
+    persist(); render(); renderStats();
+    toast(existing ? 'บันทึกทับเรียบร้อย' : 'บันทึกแล้ว ✓');
+  });
+
+  /* ---------- share text ---------- */
+  function reportText(rows, total, dateStr){
+    const d = parseDate(dateStr);
+    const lines = [`รายงานยอด นศท. วันที่ ${thDate(d,true)}`];
+    rows.forEach((r,i)=>lines.push(`หมวด ${i+1}  ยอดเดิม ${r.base}  จำหน่าย ${r.out}  คงแถว ${r.keep}`));
+    lines.push(`รวม  ยอดเดิม ${total.base}  จำหน่าย ${total.out}  คงแถว ${total.keep}`);
+    return lines.join('\n');
+  }
+  async function share(text){
+    if(navigator.share){ try{ await navigator.share({text}); return; }catch(e){ if(e.name==='AbortError') return; } }
+    try{ await navigator.clipboard.writeText(text); toast('คัดลอกแล้ว วางในไลน์ได้เลย'); }
+    catch(e){ prompt('คัดลอกข้อความนี้', text); }
+  }
+  function shareCurrent(){
+    const r = calc(state.base, state.out);
+    if(!r.valid){ toast('มีหมวดที่จำหน่ายมากกว่ายอดเดิม'); return; }
+    share(reportText(r.rows, r.t, dateEl.value));
+  }
+  $('share').addEventListener('click', shareCurrent);
+  $('share2').addEventListener('click', shareCurrent);
+
+  $('clear-out').addEventListener('click', ()=>{
+    state.out = Array(N).fill(0); state.outWeek=null; persist(); fillInputs(); render(); toast('ล้างจำหน่ายแล้ว');
+  });
+
+  /* ---------- stats ---------- */
+  function renderStats(){
+    const now = monday(new Date());
+    const cells = [];
+    for(let k=11;k>=0;k--){
+      const m = new Date(now); m.setDate(m.getDate()-7*k);
+      const key = isoDate(m), h = findWeek(key);
+      cells.push(`<div class="wk ${h?'ok':'no'} ${k===0?'now':''}"><b>${h?'✓':'–'}</b>${thDate(m)}${k===0?'<br>(นี้)':''}</div>`);
+    }
+    $('weeks').innerHTML = cells.join('');
+
+    // นับสัปดาห์ติดต่อกันที่บันทึก (ถ้าสัปดาห์นี้ยังไม่บันทึก เริ่มนับจากสัปดาห์ก่อน)
+    let streak=0, m=new Date(now);
+    if(!findWeek(isoDate(m))) m.setDate(m.getDate()-7);
+    while(findWeek(isoDate(m))){ streak++; m.setDate(m.getDate()-7); }
+    const hs = state.history;
+    const avg = hs.length ? (hs.reduce((a,h)=>a+(h.total.base?h.total.keep/h.total.base:0),0)/hs.length*100).toFixed(1) : null;
+    $('streak').innerHTML = `บันทึกทั้งหมด <b>${hs.length}</b> สัปดาห์ · ติดต่อกัน <b>${streak}</b> สัปดาห์` + (avg?` · มาแถวเฉลี่ย <b>${avg}%</b>`:'');
+
+    const hist = $('hist');
+    if(!hs.length){ hist.innerHTML = '<li class="empty">ยังไม่มีประวัติ — กรอกยอดแล้วกดบันทึก</li>'; return; }
+    hist.innerHTML = hs.map((h,idx)=>{
+      const sd = new Date(h.savedAt);
+      return `<li>
+        <div class="top"><span class="wkname">${weekLabel(h.week)}</span><span class="when">${thDate(parseDate(h.date))} · ${pad(sd.getHours())}:${pad(sd.getMinutes())}</span></div>
+        <div class="sum"><span>ยอดเดิม <b>${h.total.base}</b></span><span>จำหน่าย <b>${h.total.out}</b></span><span>คงแถว <b>${h.total.keep}</b></span></div>
+        <details><summary>ดูรายหมวด</summary>
+          <table><tr><th>หมวด</th><th>ยอดเดิม</th><th>จำหน่าย</th><th>คงแถว</th></tr>
+          ${h.rows.map((r,i)=>`<tr><td>${i+1}</td><td>${r.base}</td><td>${r.out}</td><td>${r.keep}</td></tr>`).join('')}
+          <tr class="t"><td>รวม</td><td>${h.total.base}</td><td>${h.total.out}</td><td>${h.total.keep}</td></tr></table>
+          <div class="acts">
+            <button class="btn small" data-share="${idx}">ส่งยอดนี้</button>
+            <button class="btn small danger" data-del="${idx}">ลบ</button>
+          </div>
+        </details></li>`;
+    }).join('');
+  }
+  $('hist').addEventListener('click', e=>{
+    const s = e.target.closest('[data-share]'), d = e.target.closest('[data-del]');
+    if(s){ const h = state.history[+s.dataset.share]; share(reportText(h.rows,h.total,h.date)); }
+    if(d){ const h = state.history[+d.dataset.del];
+      if(confirm('ลบบันทึกสัปดาห์ '+weekLabel(h.week)+' ?')){ state.history.splice(+d.dataset.del,1); persist(); renderStats(); render(); } }
+  });
+
+  /* ---------- backup ---------- */
+  $('export').addEventListener('click', ()=>{
+    const blob = new Blob([JSON.stringify(state,null,1)], {type:'application/json'});
+    const a = document.createElement('a'); a.href = URL.createObjectURL(blob);
+    a.download = 'ยอดรด-สำรอง-'+isoDate(new Date())+'.json'; a.click();
+    setTimeout(()=>URL.revokeObjectURL(a.href), 1000);
+  });
+  $('import').addEventListener('change', async e=>{
+    const f = e.target.files[0]; if(!f) return;
+    try{
+      const s = JSON.parse(await f.text());
+      if(!Array.isArray(s.base) || !Array.isArray(s.history)) throw 0;
+      if(!confirm('นำเข้าไฟล์นี้จะแทนที่ข้อมูลในเครื่องทั้งหมด ตกลงไหม?')) return;
+      state = s; persist(); fillInputs(); render(); renderStats(); toast('นำเข้าแล้ว');
+    }catch(err){ toast('ไฟล์ไม่ถูกต้อง'); }
+    e.target.value='';
+  });
+
+  /* ---------- tabs ---------- */
+  function tab(which){
+    $('tab-calc').setAttribute('aria-selected', which==='calc');
+    $('tab-stat').setAttribute('aria-selected', which==='stat');
+    $('page-calc').hidden = which!=='calc';
+    $('page-stat').hidden = which!=='stat';
+    if(which==='stat') renderStats();
+  }
+  $('tab-calc').addEventListener('click', ()=>tab('calc'));
+  $('tab-stat').addEventListener('click', ()=>tab('stat'));
+
+  /* ---------- toast ---------- */
+  let tt;
+  function toast(msg){ const t=$('toast'); t.textContent=msg; t.classList.add('show'); clearTimeout(tt); tt=setTimeout(()=>t.classList.remove('show'),2200); }
+
+  fillInputs(); render(); renderStats();
+})();
+</script>
+</body>
+</html>
